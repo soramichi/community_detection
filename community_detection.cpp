@@ -53,9 +53,8 @@ public:
   double Q(int M /* == 2m */, const int* edges, int n, const int* k) {
     double Qval = 0;
 
-    for(auto it1 = members.begin(); it1 != members.end(); it1++) {
-      for(auto it2 = members.begin(); it2 != members.end(); it2++) {
-	int i = *it1, j = *it2;
+    for(int i: members) {
+      for(int j: members) {
 	Qval += edges[index(i, j, n)] - (k[i] * k[j] /(double)M);
       }
     }
@@ -121,13 +120,11 @@ int main() {
   bool node_moved;
 
   do {
+    community* to_comm;
     node_moved = false;
 
     for(int i = 0; i < n_nodes; i++) {      
-      community *from_comm, *to_comm;
       double Qgain_max = 0.0;
-
-      from_comm = find_comm(comms, i);
 
       for(int j = 0; j < n_nodes; j++) {
 	if (edges[index(i, j, n_nodes)] == 0) {
@@ -140,32 +137,27 @@ int main() {
 	  new_comms.push_back(c);
 	}
 
+	// calculate Qs for the new and old clustering
+	double Qold = 0, Qnew = 0;
+	find_comm(new_comms, i)->remove(i);
+	find_comm(new_comms, j)->add(i);
+	for(auto &c: comms) {
+	  Qold += c.Q(M, edges, n_nodes, k);
+	}
+	for(auto &c: new_comms) {
+	  Qnew += c.Q(M, edges, n_nodes, k);
+	}
+
 	// calculate the gain of Q
-	// i_comm: the community that node i belongs to
-	// j_comm: the community that node j belongs to (which is the one node i will be moved to)
-	community* i_comm_old = from_comm;	// i_comm_old is always the same for a given i
-	community* j_comm_old = find_comm(comms, j);
-	community* i_comm_new = find_comm(new_comms, i);
-	community* j_comm_new = find_comm(new_comms, j);
-
-	i_comm_new->remove(i);
-	j_comm_new->add(i);
-
-	// Calculate Qgain
-	// Note: Q of communities that neither i or j belong to are the same in the old and new networks,
-	// so we do not need to consider them (even if we do, they just cancel each other).
-	double Qold =  i_comm_old->Q(M, edges, n_nodes, k) + j_comm_old->Q(M, edges, n_nodes, k);
-	double Qnew = i_comm_new->Q(M, edges, n_nodes, k) + j_comm_new->Q(M, edges, n_nodes, k);
 	double Qgain = Qnew - Qold;
-	
 	if (Qgain > Qgain_max) {
-	  to_comm = j_comm_old;
+	  to_comm = find_comm(comms, j);
 	  Qgain_max = Qgain;
 	}
       }
 
       if (Qgain_max > 0) {
-	from_comm->remove(i);
+	find_comm(comms, i)->remove(i);
 	to_comm->add(i);
 	node_moved = true;
       }
