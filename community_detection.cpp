@@ -67,6 +67,10 @@ public:
     return (find(members.begin(), members.end(), node) != members.end());
   }
 
+  void sort() {
+    std::sort(members.begin(), members.end());
+  }
+
   void print() const {
     for(const auto& n: members) {
       cout << n << " ";
@@ -167,6 +171,7 @@ int main() {
   cout << "\nResult:" << endl;
   for(auto& c: comms) {
     if (!c.empty()) {
+      c.sort();
       c.print();
     }
   }
